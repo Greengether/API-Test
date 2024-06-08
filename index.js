@@ -1,11 +1,14 @@
+require('dotenv').config()
+
 const express = require('express');
 const app = express();
-const PORT = 8080;
+
+const db = require("./db")
 
 app.use(express.json()) //Middleware on every request to automatically parse JSON
 
 app.listen(
-    PORT, () => console.log("live on localhost:" + PORT)
+    process.env.PORT, () => console.log("live on localhost:" + process.env.PORT)
 )
 
 //Create HTTP GET endpoint
