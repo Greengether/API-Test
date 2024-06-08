@@ -1,11 +1,11 @@
-import mongoose, {Schema} from "mongoose"
+import mongoose from "mongoose"
 
 export interface IEvent extends Document {
     name: string;
     date: Date;
     description?: string;
 }
-const eventSchema = new Schema<IEvent>({
+const eventSchema = new mongoose.Schema<IEvent>({
     title: {
         type: String,
         required: true
@@ -20,5 +20,4 @@ const eventSchema = new Schema<IEvent>({
     }
 })
 
-const eventModel = mongoose.model("Event", eventSchema)
-export default eventModel
+export default mongoose.model("Event", eventSchema)

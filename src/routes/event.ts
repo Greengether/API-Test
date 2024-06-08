@@ -1,6 +1,7 @@
 import express, { Response } from "express";
 import type { IEvent } from "../models/event";
 import Event from "../models/event";
+import auth from "../middleware/auth";
 const router = express.Router();
 
 type MiddlewareResponse = Response & { event?: IEvent };
@@ -26,8 +27,8 @@ router.use("/:id", async (req, res: MiddlewareResponse, next) => {
 });
 
 /* HTTP endpoints relative to /event path */
-// Get all
-router.get("/", async (req, res) => {
+// Get all, protected route
+router.get("/", auth, async (req, res) => {
     try {
         const events = await Event.find();
         res.json(events);

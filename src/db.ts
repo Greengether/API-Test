@@ -2,10 +2,17 @@ import * as dotenv from "dotenv";
 import mongoose from "mongoose";
 dotenv.config();
 
-const connectionString = process.env.MONGODB_URI;
-if (!connectionString) throw new Error("Mongo DB connection string missing.");
+export async function connectDB() {
+    try {
+        const connectionString = process.env.MONGODB_URI;
+        if (!connectionString)
+            throw new Error("Mongo DB connection string missing.");
 
-mongoose.connect(connectionString);
-const db = mongoose.connection;
+        await mongoose.connect(connectionString);
+    } catch (error: any) {
+        console.error(error?.message)
+        process.exit(1)
+    }
+}
 
-export default db
+export default mongoose.connection;
