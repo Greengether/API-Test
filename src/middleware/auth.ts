@@ -5,23 +5,23 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 dotenv.config();
 
 interface AuthenticatedRequest extends Request {
-    user?: JwtPayload["user"];
+    userId?: string;
 }
 
 export default function auth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    const token = req.header("x-auth-token");
-    if (!token)
+    const { accessToken } = req.cookies;
+    if (!accessToken)
         return res
             .status(401)
             .json({ message: "No token, authorization denied." });
 
-    const jwtSecret = process.env.JWT_PRIVATE_KEY;
-    if (!jwtSecret)
-        return res.status(500).json({ message: "No JWT secret key provided." });
+    const privateKey = process.env.JWT_PRIVATE_KEY;
+    if (!privateKey)
+        return res.status(500).json({ message: "No JWT private key provided." });
     
     try {
-        const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
-        req.user = decoded.user;
+        const decodedUserId = jwt.verify(accessToken, privateKey) as string;
+        req.userId = decodedUserId;
         next()
     } catch (error) {
         console.error(error);
