@@ -1,11 +1,11 @@
 import * as dotenv from "dotenv";
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import type { JwtPayload } from "../routes/auth";
+import type { JwtPayload } from "../types/index";
 
 dotenv.config();
 
-type AuthenticatedRequest = Request & JwtPayload
+export type AuthenticatedRequest = Request & JwtPayload
 
 export default function auth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     const { accessToken } = req.cookies;
