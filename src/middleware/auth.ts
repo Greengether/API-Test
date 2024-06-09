@@ -1,12 +1,11 @@
 import * as dotenv from "dotenv";
 import { NextFunction, Request, Response } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
+import type { JwtPayload } from "../routes/auth";
 
 dotenv.config();
 
-interface AuthenticatedRequest extends Request {
-    userId?: string;
-}
+type AuthenticatedRequest = Request & JwtPayload
 
 export default function auth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     const { accessToken } = req.cookies;
@@ -20,8 +19,8 @@ export default function auth(req: AuthenticatedRequest, res: Response, next: Nex
         return res.status(500).json({ message: "No JWT private key provided." });
     
     try {
-        const decodedUserId = jwt.verify(accessToken, privateKey) as string;
-        req.userId = decodedUserId;
+        const decoded = jwt.verify(accessToken, privateKey) as JwtPayload;
+        req.userId = decoded.userId;
         next()
     } catch (error) {
         console.error(error);

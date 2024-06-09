@@ -4,53 +4,50 @@ import * as dotenv from "dotenv";
 import express from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/user";
+import { Types } from "mongoose";
 
 dotenv.config();
 
 const router = express.Router();
 router.use(cookieParser());
 
-function generateToken(
-    payload: string | object,
-    key: string,
-    expiresIn: string
-) {
-    return jwt.sign(payload, key, { expiresIn });
-}
-
 function generateAccessToken(payload: string | object) {
     const privateKey = process.env.JWT_PRIVATE_KEY
     if (!privateKey) throw new Error("JWT private key missing.");
-    return generateToken(payload, privateKey, "1h")
+    return jwt.sign(payload, privateKey, { expiresIn: "1h" })
 }
 
 function generateRefreshToken(payload: string | object) {
     const refreshKey = process.env.JWT_REFRESH_KEY;
     if (!refreshKey) throw new Error("JWT refresh key missing.");
-    return generateToken(payload, refreshKey, "7d");
+    return jwt.sign(payload, refreshKey, { expiresIn: "7d"});
 }
-    
+
+export interface JwtPayload {
+    userId?: Types.ObjectId
+}
 
 router.get("/register", async (req, res) => {
     res.render("register");
 });
 
 router.post("/register", async (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     try {
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ username });
         if (existingUser)
             return res.status(400).json({ message: "User already exists." });
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const user = new User({ email, password: hashedPassword });
+        const user = new User({ username, password: hashedPassword });
         await user.save();
 
-        const accessToken = generateAccessToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
+        const payload: JwtPayload = { userId: user._id }
+        const accessToken = generateAccessToken(payload);
+        const refreshToken = generateRefreshToken(payload);
 
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
@@ -61,7 +58,7 @@ router.post("/register", async (req, res) => {
             maxAge: 604800000,
         });
 
-        res.status(201).json({ accessToken, refreshToken });
+        res.redirect('/');
     } catch (error: any) {
         console.error(error);
         res.status(500).json({ message: error.message });
@@ -73,19 +70,20 @@ router.get("/login", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     try {
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ username });
         if (!user)
             return res.status(400).json({ message: "Invalid credentials." });
 
         const matchingPasswords = await bcrypt.compare(password, user.password);
         if (!matchingPasswords)
             return res.status(400).json({ message: "Wrong password." });
-
-        const accessToken = generateAccessToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
+        
+        const payload: JwtPayload = {userId: user._id}
+        const accessToken = generateAccessToken(payload);
+        const refreshToken = generateRefreshToken(payload);
 
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
@@ -96,7 +94,7 @@ router.post("/login", async (req, res) => {
             maxAge: 604800000,
         });
 
-        res.json({ accessToken, refreshToken });
+        res.redirect('/');
     } catch (error: any) {
         console.error(error);
         res.status(500).json({ message: error.message });
@@ -111,13 +109,14 @@ router.post("/refresh-token", async (req, res) => {
     try {
         const refreshKey = process.env.JWT_REFRESH_KEY;
         if (!refreshKey) throw new Error("JWT refresh key missing.");
-        const decodedUserId = jwt.verify(refreshToken, refreshKey);
-        const user = await User.findById(decodedUserId);
+        const decoded = jwt.verify(refreshToken, refreshKey) as JwtPayload;
+        const user = await User.findById(decoded.userId);
         if (!user)
             return res.status(401).json({ message: "Invalid refresh token." });
 
-        const newAccessToken = generateAccessToken(user._id);
-        const newRefreshToken = generateRefreshToken(user._id);
+        const payload: JwtPayload = {userId: user._id}
+        const newAccessToken = generateAccessToken(payload);
+        const newRefreshToken = generateRefreshToken(payload);
 
         res.cookie("accessToken", newAccessToken, {
             httpOnly: true,

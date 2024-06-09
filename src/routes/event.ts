@@ -22,13 +22,14 @@ router.use("/:id", async (req, res: MiddlewareResponse, next) => {
         res.event = event;
         next();
     } catch (error: any) {
+        console.error(error)
         return res.status(500).json({ message: error?.message });
     }
 });
 
 /* HTTP endpoints relative to /event path */
-// Get all, protected route
-router.get("/", auth, async (req, res) => {
+// Get all
+router.get("/", async (req, res) => {
     try {
         const events = await Event.find();
         res.json(events);
@@ -42,8 +43,8 @@ router.get("/:id", (req, res: MiddlewareResponse) => {
     res.send(res.event);
 });
 
-// Create one
-router.post("/", async (req, res) => {
+// Create one, protected route
+router.post("/", auth, async (req, res) => {
     const { title, description, date } = req.body;
     const event = new Event({ title, description, date });
 
@@ -55,8 +56,8 @@ router.post("/", async (req, res) => {
     }
 });
 
-// Update one
-router.patch("/:id", async (req, res: MiddlewareResponse) => {
+// Update one, protected route
+router.patch("/:id", auth, async (req, res: MiddlewareResponse) => {
     const { id } = req.params;
     const { title, description, date } = req.body;
     try {
@@ -77,8 +78,8 @@ router.patch("/:id", async (req, res: MiddlewareResponse) => {
     }
 });
 
-// Delete one
-router.delete("/:id", async (req, res: MiddlewareResponse) => {
+// Delete one, protected route
+router.delete("/:id", auth, async (req, res: MiddlewareResponse) => {
     const {id} = req.params
     try {
         await Event.findByIdAndDelete(id);
